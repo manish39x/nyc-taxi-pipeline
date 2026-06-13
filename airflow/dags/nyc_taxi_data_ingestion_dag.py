@@ -39,18 +39,27 @@ def nyc_taxi_data_ingestion_dag():
         print(f"Streaming {taxi_type} {year}-{month} → s3://{S3_BUCKET_NAME}/{s3_key}")
 
         req = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
-        }
-    )
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+            }
+        )
 
         s3 = boto3.client("s3")
-
+        #--- INCREMENTAL CHECKING-----
+        try:
+            s3.head_object(Bucket=S3_BUCKET_NAME, Key=s3_key)
+            print(f"Already exists, skipping: s3://{S3_BUCKET_NAME}/{s3_key}")
+            return "Skipped"
+        except:
+            if e.response["Error"]["Code"] != "404":
+                raise
+        
+        # --- STREAMING DATA ------
         with urllib.request.urlopen(req) as response:
             # Multipart upload — streams in chunks, never loads full file into RAM
             mpu = s3.create_multipart_upload(Bucket=S3_BUCKET_NAME, Key=s3_key)
