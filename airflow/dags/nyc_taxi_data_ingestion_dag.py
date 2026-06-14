@@ -4,6 +4,8 @@ from airflow.timetables.interval import CronDataIntervalTimetable
 import urllib.request
 import boto3
 from datetime import timedelta
+from utils import slack_reporter
+
 
 S3_BUCKET_NAME = "airflow-demo-bucket-june8"
 TAXI_TYPES = ["yellow", "green"]
@@ -15,6 +17,7 @@ TAXI_TYPES = ["yellow", "green"]
     catchup=True,
     max_active_runs=2,
     max_active_tasks=4,
+    on_failure_callback= slack_reporter.send_slack_alert
 )
 def nyc_taxi_data_ingestion_dag():
 
